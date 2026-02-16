@@ -5,22 +5,22 @@ const highlights = [
   {
     icon: ShieldCheck,
     title: "Licensed Professionals",
-    description: "Board-certified doctors and licensed physical therapists.",
+    description: "Board-certified doctors and licensed medical technicians.",
   },
   {
     icon: Clock,
-    title: "Flexible Hours",
-    description: "Open 6 days a week with extended hours for your convenience.",
+    title: "Convenient Hours",
+    description: "Open Tuesday to Saturday, 9:00 AM - 1:00 PM for your convenience.",
   },
   {
     icon: Users,
     title: "Patient-Centered Care",
-    description: "Personalized treatment plans tailored to your recovery goals.",
+    description: "Personalized diagnostic services tailored to your health needs.",
   },
   {
     icon: Award,
     title: "Trusted Since 2009",
-    description: "Over 15 years of excellence in healthcare services.",
+    description: "Over 15 years of excellence in diagnostic healthcare services.",
   },
 ]
 
@@ -45,34 +45,30 @@ export function AboutSection() {
 
         <div className="flex flex-col gap-6">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-wider text-primary">
+            <p className="text-base font-semibold uppercase tracking-wider text-primary">
               About Us
             </p>
-            <h2 className="mt-2 font-display text-3xl font-bold text-foreground md:text-4xl">
+            <h2 className="mt-3 font-display text-4xl font-bold text-foreground md:text-5xl">
               <span className="text-balance">Cudiamat Medical Corp.</span>
             </h2>
-            <p className="mt-2 font-display text-lg text-muted-foreground">
-              Your Number 1 Partner in Physical Therapy and Health
+            <p className="mt-3 font-display text-xl text-muted-foreground">
+              Your Number 1 Partner in Diagnostic Healthcare Services
             </p>
           </div>
 
-          <p className="leading-relaxed text-muted-foreground">
-            Established in 2009, Cudiamat Medical Corp. (Hari Clinic) has been at
-            the forefront of providing exceptional healthcare services in physical
-            therapy and rehabilitation. Our mission is to restore function, reduce
-            pain, and improve the quality of life for every patient who walks
-            through our doors.
+          <p className="text-lg leading-relaxed text-muted-foreground">
+            Established in 2009, Cudiamat Medical Corp. (Hari Clinic) has been providing exceptional diagnostic healthcare services. We specialize in ECG, ULTRASOUND, EYE CHECK UP, and 2D ECHO procedures. Our mission is to provide accurate diagnostic services and improve the quality of life for every patient who walks through our doors. We operate Tuesday through Saturday from 9:00 AM to 1:00 PM, offering convenient scheduling for all our diagnostic services.
           </p>
 
           <div className="grid gap-4 sm:grid-cols-2">
             {highlights.map((item) => (
               <div key={item.title} className="flex gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <item.icon className="h-5 w-5" />
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <item.icon className="h-6 w-6" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-foreground">{item.title}</p>
-                  <p className="text-xs leading-relaxed text-muted-foreground">
+                  <p className="text-base font-semibold text-foreground">{item.title}</p>
+                  <p className="text-sm leading-relaxed text-muted-foreground">
                     {item.description}
                   </p>
                 </div>

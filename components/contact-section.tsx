@@ -11,7 +11,7 @@ const contactInfo = [
     icon: Phone,
     label: "Phone",
     value: "+63 (02) 1234-5678",
-    sub: "Mon-Sat, 8AM-5PM",
+    sub: "Tue-Sat, 9AM-1PM",
   },
   {
     icon: Mail,
@@ -22,8 +22,8 @@ const contactInfo = [
   {
     icon: Clock,
     label: "Clinic Hours",
-    value: "Mon - Sat: 8:00 AM - 5:00 PM",
-    sub: "Sunday: Closed",
+    value: "Tuesday - Saturday: 9:00 AM - 1:00 PM",
+    sub: "Sunday & Monday: Closed",
   },
 ]
 
@@ -32,13 +32,13 @@ export function ContactSection() {
     <section id="contact" className="bg-muted/50 py-16 lg:py-24">
       <div className="mx-auto max-w-7xl px-4 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
-          <p className="text-sm font-semibold uppercase tracking-wider text-primary">
+          <p className="text-base font-semibold uppercase tracking-wider text-primary">
             Get In Touch
           </p>
-          <h2 className="mt-2 font-display text-3xl font-bold text-foreground md:text-4xl">
+          <h2 className="mt-3 font-display text-4xl font-bold text-foreground md:text-5xl">
             <span className="text-balance">Contact Us</span>
           </h2>
-          <p className="mt-4 text-muted-foreground">
+          <p className="mt-5 text-lg text-muted-foreground">
             Have questions or need assistance? Reach out to us and our team will
             be happy to help.
           </p>

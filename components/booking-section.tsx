@@ -12,9 +12,17 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { CalendarCheck, Loader2, Sparkles } from "lucide-react"
+import {
+  CalendarCheck,
+  Loader2,
+  MessageCircle,
+  Send,
+  Sparkles,
+  X as CloseIcon,
+} from "lucide-react"
 
 const services = ["ECG", "ULTRASOUND", "EYE CHECK UP", "2D ECHO"] as const
+type Service = (typeof services)[number]
 
 // Service → weekday (0 = Sunday, 1 = Monday, 2 = Tuesday, ... 6 = Saturday)
 const serviceToWeekday: Record<(typeof services)[number], number> = {
@@ -80,6 +88,20 @@ function getTimeSlotsForService(service: (typeof services)[number]): string[] {
   return slots
 }
 
+async function getFirstAvailableSlot(service: Service) {
+  const weekday = serviceToWeekday[service]
+  const dates = getAvailableDates(weekday, 4)
+  if (dates.length === 0) return null
+  const date = dates[0].value
+
+  const times = getTimeSlotsForService(service)
+  if (times.length === 0) return { date, time: "" }
+  const time = times[0]
+
+  // For now we don't check existing bookings; first slot is \"next available\"
+  return { date, time }
+}
+
 export function BookingSection() {
   const [submitted, setSubmitted] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -94,6 +116,148 @@ export function BookingSection() {
     preferredDate: "",
     preferredTime: "",
   })
+
+  type ChatMessage = { from: "user" | "ai"; text: string }
+  const [chatOpen, setChatOpen] = useState(false)
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
+  const [chatInput, setChatInput] = useState("")
+  const [chatLoading, setChatLoading] = useState(false)
+
+  type ChatStep = "idle" | "askName" | "askEmail" | "askPhone"
+  const [chatStep, setChatStep] = useState<ChatStep>("idle")
+
+  async function handleChatSend(e?: React.FormEvent) {
+    if (e) e.preventDefault()
+    const text = chatInput.trim()
+    if (!text) return
+    setChatMessages((prev) => [...prev, { from: "user", text }])
+    setChatInput("")
+    setChatLoading(true)
+
+    // If we are in a \"collect details\" step, handle locally without calling AI
+    if (chatStep === "askName") {
+      const parts = text.split(" ")
+      const firstName = parts[0] ?? ""
+      const lastName = parts.slice(1).join(" ")
+      setFormData((prev) => ({
+        ...prev,
+        firstName: firstName || prev.firstName,
+        lastName: lastName || prev.lastName,
+      }))
+      setChatMessages((prev) => [
+        ...prev,
+        { from: "ai", text: "Thanks! What is your email address?" },
+      ])
+      setChatStep("askEmail")
+      setChatLoading(false)
+      return
+    }
+
+    if (chatStep === "askEmail") {
+      setFormData((prev) => ({
+        ...prev,
+        email: text || prev.email,
+      }))
+      setChatMessages((prev) => [
+        ...prev,
+        { from: "ai", text: "Got it. Lastly, what is your phone number?" },
+      ])
+      setChatStep("askPhone")
+      setChatLoading(false)
+      return
+    }
+
+    if (chatStep === "askPhone") {
+      setFormData((prev) => ({
+        ...prev,
+        phone: text || prev.phone,
+      }))
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          from: "ai",
+          text:
+            "Thank you. I now have your details. You can tap “Book this appointment” to confirm your schedule.",
+        },
+      ])
+      setChatStep("idle")
+      setChatLoading(false)
+      return
+    }
+
+    // Normal AI flow
+    try {
+      const res = await fetch("/api/ai-assist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text }),
+      })
+      const data = await res.json()
+
+      if (!res.ok || data.error) {
+        const msg =
+          data?.reply ??
+          data?.error ??
+          "Sorry, the AI assistant is not available right now. Please try again later."
+        setChatMessages((prev) => [...prev, { from: "ai", text: msg }])
+        return
+      }
+
+      // Always show AI reply
+      setChatMessages((prev) => [...prev, { from: "ai", text: data.reply ?? "" }])
+
+      // If AI suggested a service, also pick date/time locally
+      if (data.service && (services as readonly string[]).includes(data.service)) {
+        const svc = data.service as Service
+        const slot = await getFirstAvailableSlot(svc)
+
+        setFormData((prev) => ({
+          ...prev,
+          service: svc,
+          preferredDate: slot?.date ?? prev.preferredDate,
+          preferredTime: slot?.time ?? prev.preferredTime,
+        }))
+
+        setChatMessages((prev) => [
+          ...prev,
+          {
+            from: "ai",
+            text: `I can book ${svc} on ${slot?.date ?? "the next available day"} at ${
+              slot?.time ?? ""
+            }. If your details below are correct, tap “Book this appointment”.`,
+          },
+        ])
+
+        // If details are missing, start asking for them in chat
+        if (
+          !formData.firstName ||
+          !formData.lastName ||
+          !formData.email ||
+          !formData.phone
+        ) {
+          setChatMessages((prev) => [
+            ...prev,
+            {
+              from: "ai",
+              text:
+                "To finish booking, let me collect your details. What is your full name?",
+            },
+          ])
+          setChatStep("askName")
+        }
+      }
+    } catch {
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          from: "ai",
+          text: "Sorry, something went wrong talking to the AI assistant. Please try again.",
+        },
+      ])
+    } finally {
+      setChatLoading(false)
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -129,39 +293,95 @@ export function BookingSection() {
     }
   }
 
+  const canQuickBook =
+    !!formData.firstName &&
+    !!formData.lastName &&
+    !!formData.email &&
+    !!formData.phone &&
+    !!formData.service &&
+    !!formData.preferredDate &&
+    !!formData.preferredTime
+
+  async function handleChatBook() {
+    if (!canQuickBook) {
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          from: "ai",
+          text:
+            "I need your name, email, phone, service, date, and time before I can book an appointment.",
+        },
+      ])
+      return
+    }
+
+    setChatLoading(true)
+    try {
+      const res = await fetch("/api/appointments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setChatMessages((prev) => [
+          ...prev,
+          { from: "ai", text: data.error ?? "Failed to create appointment." },
+        ])
+        return
+      }
+
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          from: "ai",
+          text: `Your appointment has been booked!\n\nConfirmation: ${data.id
+            ?.slice(0, 8)
+            ?.toUpperCase()}`,
+        },
+      ])
+    } catch {
+      setChatMessages((prev) => [
+        ...prev,
+        { from: "ai", text: "Sorry, something went wrong while booking. Please try again." },
+      ])
+    } finally {
+      setChatLoading(false)
+    }
+  }
+
   return (
-    <section id="book" className="py-16 lg:py-24">
+    <section id="book" className="relative py-16 lg:py-24">
       <div className="mx-auto max-w-7xl px-4 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
-          <p className="text-sm font-semibold uppercase tracking-wider text-primary">
+          <p className="text-base font-semibold uppercase tracking-wider text-primary">
             Book Now
           </p>
-          <h2 className="mt-2 font-display text-3xl font-bold text-foreground md:text-4xl">
+          <h2 className="mt-3 font-display text-4xl font-bold text-foreground md:text-5xl">
             <span className="text-balance">Schedule Your Appointment</span>
           </h2>
-          <p className="mt-4 text-muted-foreground">
-            Fill out the form below and our AI system will find the best available
-            slot for you.
+          <p className="mt-5 text-lg text-muted-foreground">
+            Fill out the form below to book your appointment manually, or use the AI assistant chat bubble for guided booking. Both methods are available.
           </p>
         </div>
 
         <div className="mx-auto mt-12 max-w-2xl">
           <Card className="border-border bg-card shadow-lg">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 font-display text-card-foreground">
-                <Sparkles className="h-5 w-5 text-primary" />
+              <CardTitle className="flex items-center gap-3 font-display text-xl text-card-foreground">
+                <Sparkles className="h-6 w-6 text-primary" />
                 AI-Assisted Booking
               </CardTitle>
             </CardHeader>
             <CardContent>
               {!submitted ? (
-                <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+                <form onSubmit={handleSubmit} className="flex flex-col gap-6">
                   {error && (
-                    <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                    <p className="rounded-md bg-destructive/10 px-4 py-3 text-base text-destructive">
                       {error}
                     </p>
                   )}
-                  <div className="grid gap-5 sm:grid-cols-2">
+                  <div className="grid gap-6 sm:grid-cols-2">
                     <div className="flex flex-col gap-2">
                       <Label htmlFor="firstName">First Name</Label>
                       <Input
@@ -244,7 +464,7 @@ export function BookingSection() {
                     </Select>
                   </div>
 
-                  <div className="grid gap-5 sm:grid-cols-2">
+                  <div className="grid gap-6 sm:grid-cols-2">
                     <div className="flex flex-col gap-2">
                       <Label htmlFor="date">Preferred Date</Label>
                       <Select
@@ -315,36 +535,36 @@ export function BookingSection() {
                   <Button
                     type="submit"
                     size="lg"
-                    className="mt-2 gap-2"
+                    className="mt-4 gap-3"
                     disabled={loading}
                   >
                     {loading ? (
                       <>
-                        <Loader2 className="h-5 w-5 animate-spin" />
+                        <Loader2 className="h-6 w-6 animate-spin" />
                         Booking...
                       </>
                     ) : (
                       <>
-                        <CalendarCheck className="h-5 w-5" />
+                        <CalendarCheck className="h-6 w-6" />
                         Confirm Appointment
                       </>
                     )}
                   </Button>
                 </form>
               ) : (
-                <div className="flex flex-col items-center gap-4 py-8 text-center">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                    <CalendarCheck className="h-8 w-8 text-primary" />
+                <div className="flex flex-col items-center gap-5 py-10 text-center">
+                  <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
+                    <CalendarCheck className="h-10 w-10 text-primary" />
                   </div>
-                  <h3 className="font-display text-xl font-bold text-foreground">
+                  <h3 className="font-display text-2xl font-bold text-foreground">
                     Appointment Requested!
                   </h3>
                   {confirmationId && (
-                    <p className="rounded-md bg-muted px-4 py-2 font-mono text-sm font-medium text-foreground">
+                    <p className="rounded-md bg-muted px-5 py-3 font-mono text-lg font-semibold text-foreground">
                       Confirmation # {confirmationId.slice(0, 8).toUpperCase()}
                     </p>
                   )}
-                  <p className="max-w-md text-muted-foreground">
+                  <p className="max-w-md text-lg text-muted-foreground">
                     Thank you for booking with Cudiamat Medical Corp. Our AI
                     system is processing your request. You will receive a
                     confirmation via email shortly. Save your confirmation number
@@ -356,7 +576,7 @@ export function BookingSection() {
                       setSubmitted(false)
                       setConfirmationId(null)
                     }}
-                    className="mt-2"
+                    className="mt-4"
                   >
                     Book Another Appointment
                   </Button>
@@ -365,6 +585,101 @@ export function BookingSection() {
             </CardContent>
           </Card>
         </div>
+      </div>
+
+      {/* AI assistant bubble */}
+      <div className="pointer-events-none fixed bottom-6 right-6 z-50 flex flex-col items-end gap-4">
+        {chatOpen && (
+          <div className="pointer-events-auto w-96 rounded-2xl border-2 border-border bg-card/95 shadow-xl backdrop-blur">
+            <div className="flex items-center justify-between border-b-2 px-5 py-3">
+              <div className="flex items-center gap-3">
+                <Sparkles className="h-5 w-5 text-primary" />
+                <span className="text-base font-semibold text-card-foreground">
+                  AI Booking Assistant
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setChatOpen(false)}
+                className="rounded-full p-2 text-muted-foreground hover:bg-muted"
+                aria-label="Close chat"
+              >
+                <CloseIcon className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="flex max-h-80 flex-col gap-3 overflow-y-auto px-5 py-4">
+              {chatMessages.length === 0 && (
+                <p className="text-base text-muted-foreground">
+                  Tell me your concern (e.g. chest pain, blurry vision) and I&apos;ll suggest the
+                  best service and schedule for you.
+                </p>
+              )}
+              {chatMessages.map((m, idx) => (
+                <div
+                  key={idx}
+                  className={`flex ${
+                    m.from === "user" ? "justify-end" : "justify-start"
+                  }`}
+                >
+                  <div
+                    className={`rounded-2xl px-4 py-3 ${
+                      m.from === "user"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-foreground"
+                    } max-w-[85%] whitespace-pre-wrap text-base`}
+                  >
+                    {m.text}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {canQuickBook && (
+              <div className="flex justify-center px-4 pb-3">
+                <Button
+                  type="button"
+                  size="default"
+                  onClick={handleChatBook}
+                  disabled={chatLoading}
+                  className="rounded-full px-6"
+                >
+                  Book this appointment
+                </Button>
+              </div>
+            )}
+            <form
+              onSubmit={handleChatSend}
+              className="flex items-center gap-3 border-t-2 bg-background/60 px-4 py-3"
+            >
+              <Input
+                type="text"
+                placeholder="Ask about your concern..."
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                className="h-12 text-base"
+              />
+              <Button
+                type="submit"
+                size="icon"
+                disabled={chatLoading}
+                className="h-12 w-12"
+              >
+                {chatLoading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Send className="h-5 w-5" />
+                )}
+              </Button>
+            </form>
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={() => setChatOpen((open) => !open)}
+          className="pointer-events-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-xl ring-2 ring-primary/40 hover:bg-primary/90"
+          aria-label="Open AI booking assistant"
+        >
+          <MessageCircle className="h-8 w-8" />
+        </button>
       </div>
     </section>
   )

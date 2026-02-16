@@ -8,7 +8,7 @@ const _dmSans = DM_Sans({ subsets: ['latin'], variable: '--font-dm-sans' })
 
 export const metadata: Metadata = {
   title: 'Cudiamat Medical Corp. | AI-Powered Appointment System',
-  description: 'Your Number 1 Partner in Physical Therapy and Health. Book appointments seamlessly with our AI-powered scheduling system at Hari Clinic.',
+  description: 'Your Number 1 Partner in Diagnostic Healthcare Services. Book ECG, ULTRASOUND, EYE CHECK UP, and 2D ECHO appointments seamlessly with our AI-powered scheduling system at Hari Clinic.',
 }
 
 export const viewport: Viewport = {

@@ -23,8 +23,8 @@ export function Footer() {
               </div>
             </Link>
             <p className="text-sm leading-relaxed text-muted-foreground">
-              Your Number 1 Partner in Physical Therapy and Health. Providing
-              quality healthcare services since 2009.
+              Your Number 1 Partner in Diagnostic Healthcare Services. Providing
+              quality diagnostic services since 2009.
             </p>
           </div>
 
@@ -40,52 +40,58 @@ export function Footer() {
               <Link href="#how-it-works" className="text-sm text-muted-foreground hover:text-primary">
                 How It Works
               </Link>
+              <Link href="#book" className="text-sm text-muted-foreground hover:text-primary">
+                Book Appointment
+              </Link>
               <Link href="#about" className="text-sm text-muted-foreground hover:text-primary">
                 About Us
               </Link>
+              <Link href="#contact" className="text-sm text-muted-foreground hover:text-primary">
+                Contact
+              </Link>
             </nav>
           </div>
 
           <div>
-            <p className="font-display text-sm font-semibold text-foreground">Services</p>
+            <p className="font-display text-sm font-semibold text-foreground">Our Services</p>
             <nav className="mt-3 flex flex-col gap-2" aria-label="Footer services">
               <Link href="#services" className="text-sm text-muted-foreground hover:text-primary">
-                Physical Therapy
+                ULTRASOUND (Tuesday)
               </Link>
               <Link href="#services" className="text-sm text-muted-foreground hover:text-primary">
-                General Consultation
+                EYE CHECK UP (Thursday)
               </Link>
               <Link href="#services" className="text-sm text-muted-foreground hover:text-primary">
-                Sports Medicine
+                2D ECHO (Friday)
               </Link>
               <Link href="#services" className="text-sm text-muted-foreground hover:text-primary">
-                Pain Management
+                ECG (Saturday)
               </Link>
             </nav>
           </div>
 
           <div>
-            <p className="font-display text-sm font-semibold text-foreground">Legal</p>
-            <nav className="mt-3 flex flex-col gap-2" aria-label="Footer legal">
-              <Link href="#" className="text-sm text-muted-foreground hover:text-primary">
-                Privacy Policy
-              </Link>
-              <Link href="#" className="text-sm text-muted-foreground hover:text-primary">
-                Terms of Service
-              </Link>
-              <Link href="#" className="text-sm text-muted-foreground hover:text-primary">
-                Data Protection
-              </Link>
-            </nav>
+            <p className="font-display text-sm font-semibold text-foreground">Clinic Hours</p>
+            <div className="mt-3 flex flex-col gap-2">
+              <p className="text-sm text-muted-foreground">
+                Tuesday - Saturday
+              </p>
+              <p className="text-sm font-semibold text-foreground">
+                9:00 AM - 1:00 PM
+              </p>
+              <p className="text-xs text-muted-foreground mt-2">
+                Sunday & Monday: Closed
+              </p>
+            </div>
           </div>
         </div>
 
         <div className="mt-10 flex flex-col items-center gap-4 border-t border-border pt-6 sm:flex-row sm:justify-between">
-          <p className="text-xs text-muted-foreground">
-            {'2025 Cudiamat Medical Corp. All rights reserved.'}
+          <p className="text-sm text-muted-foreground">
+            © 2026 Cudiamat Medical Corp. (Hari Clinic). All rights reserved.
           </p>
-          <p className="text-xs text-muted-foreground">
-            AI-Powered Appointment System for Hari Clinic
+          <p className="text-sm text-muted-foreground">
+            AI-Powered Appointment Booking System
           </p>
         </div>
       </div>
